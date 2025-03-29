@@ -1,44 +1,25 @@
-# Step 1
-Steps described following are the way to develop the game. The branch is the step 1. Follow steps to create the a web3 game if you are a developer. 
+# Step 2
+After step 1, we have created a front-end with fake data. In this step, we are going to complete back-end to return data to front-end.
 
-1. Initialize the project<br>
-Run command`pnpm create wagmi` to create a wagmi project.
 
-2. install dependecies
-```shell
-cd blackjack
-pnpm install 
-```
+1. Create a api route<br>
+Create `api` folder under directory `src/app` and create the file `route.ts`.
 
-3. run the project
-```shell
-pnpm run dev
-```
+2. Develop back-end functions in `src/app/api/`<br>
+- start the game and get 2 cards for dealer and player
+- Handle Hit and stand and decide who is the winner
 
-4. check the file architecture<br>
-All source files are saved in `/src`. Providers(wallets) are configured in the `src/wagmi`. 
+3. Complete logics for start game<br>
+Write start game logics in `GET()`.
 
-5. install tailwindcss<br>
-```shell
-pnpm add tailwindcss @tailwindcss/postcss postcss
-```
+4. Complete logics for hit and stand<br>
+Write hit and stand logics in `POST()`.
 
-6. add tailwindcss to the project<br>
-- Create a file called `postcss.config.mjs` under the root directoty and add tailwindcss as a plugin. 
-```js
-export default {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  }
-}
-```
-- Import tailwindcss in the `src/app/global.css`. Remove all codes in global.css and add the line `@import "tailwindcss";`
+5. Call the function in front-end<br>
+Write functions to make GET and POST call in file `src/app/page.tsx`
 
-Check more details on [install tailwindcss using postCSS](https://tailwindcss.com/docs/installation/using-postcss)
+6. Switch the bg-color based on `message`
 
-7. start developing the fornt-end<br>
-Remove everything in `src/app/page.tsx`.
+7. Hide the display buttons for hit, stand and reset<br>
 
-8. develop the front-end to make it like file in this branch.<br>
-Then you can see the UI below:
-![alt text](/imagesForReadme/ui-1.png)
+After development, MVP is completed and the game is OK to play.
