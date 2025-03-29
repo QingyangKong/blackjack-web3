@@ -7,6 +7,7 @@ export default function Page() {
   const [message, setMessage] = useState<string>("")
   const [playerHand, setPlayerHand] = useState<Card[]>([])
   const [dealerHand, setDealerHand] = useState<Card[]>([])
+  const [score, setScore] = useState<number>(0)
 
   useEffect(() => {
     setMessage("")
@@ -17,6 +18,7 @@ export default function Page() {
       const result = await response.json()
       setPlayerHand(result.playerHand)
       setDealerHand(result.dealerHand)
+      setScore(result.score)
     }
     initialGame()
   }, [])
@@ -26,10 +28,11 @@ export default function Page() {
       method: "POST",
       body: JSON.stringify({action: "hit"})
     })
-    const { playerHand, dealerHand, message } = await response.json()
+    const { playerHand, dealerHand, message, score } = await response.json()
     setPlayerHand(playerHand)
     setDealerHand(dealerHand)
     setMessage(message)
+    setScore(score)
   }
 
   async function handleStand() {
@@ -37,10 +40,11 @@ export default function Page() {
       method: "POST",
       body: JSON.stringify({action: "stand"})
     })
-    const { playerHand, dealerHand, message } = await response.json()
+    const { playerHand, dealerHand, message, score } = await response.json()
     setPlayerHand(playerHand)
     setDealerHand(dealerHand)
     setMessage(message)
+    setScore(score)
   }
 
   async function handleReset() {
@@ -48,18 +52,20 @@ export default function Page() {
       method: "GET",
     })
 
-    const { playerHand, dealerHand, message } = await response.json()
+    const { playerHand, dealerHand, message, score } = await response.json()
     setPlayerHand(playerHand)
     setDealerHand(dealerHand)
     setMessage(message)
+    setScore(score)
   }
 
   return (
     <div className="flex flex-col items-center h-screen bg-gray-400">
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!!</h1>
+      <h1 className="my-4 text-4xl bold">Score: {score}</h1>
       <h2 className={
         `my-4 text-2xl bold
-        ${message.includes("Player") ? "bg-green-500" : "bg-yellow-500"}`
+        ${message.includes("win") ? "bg-green-500" : "bg-yellow-500"}`
       }>{message}</h2>
       <div>
         dealer hand:

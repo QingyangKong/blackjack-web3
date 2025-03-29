@@ -22,4 +22,8 @@ Write functions to make GET and POST call in file `src/app/page.tsx`
 
 7. Hide the display buttons for hit, stand and reset<br>
 
-After development, MVP is completed and the game is OK to play.
+8. Add score for players<br>
+Add attribute `score` into the `gameState`. player win => +100. player lose => -100. 
+
+8. After development, MVP is completed and the game is OK to play. Try to see how many scores you can get.
+![alt text](/imagesForReadme/ui-2.png)
