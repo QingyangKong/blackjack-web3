@@ -1,3 +1,63 @@
+// save the score into the database
+// get and put score with tables in database
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+
+const client = new DynamoDBClient({ 
+    region: "us-east-1", 
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ""
+    }
+})
+const docClient = DynamoDBDocumentClient.from(client)
+
+interface DynamoItem {
+    player: string;
+    score: number
+}
+
+async function putItem(item: DynamoItem) {
+    try {
+        const command = new PutCommand({
+            TableName: "BlackJack",
+            Item: item
+        })
+        await docClient.send(command)
+    } catch (error) {
+        throw new Error("Error putting item in DynamoDB: " + error)
+    }
+}
+async function getItem(player: string) {
+    try {
+        const command = new GetCommand({
+            TableName: "BlackJack",
+            Key: {
+                player
+            }
+        })
+        const resposne = await docClient.send(command)
+        return resposne.Item as DynamoItem || null
+    } catch (error) {
+        throw new Error("Error getting item from DynamoDB: " + error)
+    }
+}
+
+async function updateScoreForPlayer(player: string, score: number) {
+    try {
+        const item = await getItem(player)
+        if(!item) {
+            await putItem({player, score})
+        } else {
+            await putItem({player, score})
+        }
+    } catch (error) {
+        throw new Error("Error updating score for player: " + error)
+    }
+}
+
+const defaultPlayer = "defaultPlayer"
+
 // Start the game and get 2 random cards for dealer and player
 // handle the hit and stand and decide who is the winner
 
@@ -36,7 +96,7 @@ function getRandomCard(deck: Card[], noOfCards: number): [Card[], Card[]] {
     return [randomCards, newDeck]
 }
 
-export function GET() {
+export async function GET() {
     gameState.deck = [...initialDeck]
     gameState.dealerHand = []
     gameState.playerHand = []
@@ -48,6 +108,14 @@ export function GET() {
     gameState.dealerHand = dealerHand
     gameState.playerHand = playerHand
     gameState.deck = deckAfterPlayer
+
+    const response = await getItem(defaultPlayer)
+    console.log("response", response)
+    if(!response) {
+        gameState.score = 0
+    } else {
+        gameState.score = response.score
+    }
     
     return new Response(JSON.stringify({
         playerHand: gameState.playerHand,
@@ -136,6 +204,8 @@ export async function POST(request: Request) {
                 }
             }
         }
+
+        await updateScoreForPlayer(defaultPlayer, gameState.score)        
 
         return new Response(JSON.stringify(
             {
