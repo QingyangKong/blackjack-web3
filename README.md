@@ -44,10 +44,14 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 After the button added, you can see use the button to connect to the website like below:
 ![alt text](/imagesForReadme/ui-7.png)
 
-Once the wallet is connected, info is displayed on the page
+If the wallet is connected(it will connect your wallet if you once connectec the wallet to the rainbowk kit), info is displayed on the page. UI is provided as below to sign with message. 
 ![alt text](/imagesForReadme/ui-8.png)
 
-4. Block the game if player does not sign
+Once the message is signed with wallet, the gaming page will be displayed. 
+![alt text](/imagesForReadme/ui-9.png)
+
+4. Block the game if player does not sign<br>
+
 For now, although there is button in the page, players can still play the game even if they does not connect and sign. Add a state `signed` to mark if the user signs the message or not. 
 
 5. Add verification logics in back-end
