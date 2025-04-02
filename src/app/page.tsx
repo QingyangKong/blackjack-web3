@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState } from "react"
 import { Card } from "./api/route"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useAccount, useSignMessage } from "wagmi"
 
 export default function Page() { 
   
@@ -8,11 +10,12 @@ export default function Page() {
   const [playerHand, setPlayerHand] = useState<Card[]>([])
   const [dealerHand, setDealerHand] = useState<Card[]>([])
   const [score, setScore] = useState<number>(0)
+  const [signed, setSigned] = useState<boolean>(false)
+  const { isConnected, address } = useAccount()
+  const { signMessageAsync } = useSignMessage()
 
-  useEffect(() => {
-    setMessage("")
     const initialGame = async () => {
-      const response = await fetch("/api", {
+      const response = await fetch(`/api?player=${address}`, {
         method: "GET",
       })
       const result = await response.json()
@@ -20,13 +23,14 @@ export default function Page() {
       setDealerHand(result.dealerHand)
       setScore(result.score)
     }
-    initialGame()
-  }, [])
 
   async function handleHit() {
     const response = await fetch("api", {
+      headers: {
+        bearer: `Bearer ${localStorage.getItem("token")}`,
+      },
       method: "POST",
-      body: JSON.stringify({action: "hit"})
+      body: JSON.stringify({action: "hit", player: address})
     })
     const { playerHand, dealerHand, message, score } = await response.json()
     setPlayerHand(playerHand)
@@ -37,8 +41,11 @@ export default function Page() {
 
   async function handleStand() {
     const response = await fetch("api", {
+      headers: {
+        bearer: `Bearer ${localStorage.getItem("token")}`,
+      },
       method: "POST",
-      body: JSON.stringify({action: "stand"})
+      body: JSON.stringify({action: "stand", player: address})
     })
     const { playerHand, dealerHand, message, score } = await response.json()
     setPlayerHand(playerHand)
@@ -48,7 +55,10 @@ export default function Page() {
   }
 
   async function handleReset() {
-    const response = await fetch("api", {
+    const response = await fetch(`api?player=${address}`, {
+      headers: {
+        bearer: `Bearer ${localStorage.getItem("token")}`,
+      },
       method: "GET",
     })
 
@@ -59,8 +69,45 @@ export default function Page() {
     setScore(score)
   }
 
+  async function handleSign() {
+    const messageToSign = `Welcome to the black jack game at ${new Date().toString()}, please sign this message to prove you are the owner of the wallet.`
+    const signature = await signMessageAsync({
+      message: messageToSign
+    })
+    const response = await fetch("/api", {
+      method: "POST",
+      body: JSON.stringify({
+        signature,
+        message: messageToSign,
+        player: address,
+        action: "auth"
+      })
+    })
+
+    if(response.status === 200) {
+      const { token } = await response.json()
+      localStorage.setItem("token", token)
+      setSigned(true)
+      setMessage("")
+      initialGame()
+    }
+  }
+
+  if(!signed) {
+    return (
+      <div>
+        <ConnectButton />
+        {
+          isConnected ? <button onClick={handleSign} className="bg-slate-400 rounded-md p-2"> Please Sign</button> : <h1> Please Connect</h1>
+        }
+        
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center h-screen bg-gray-400">
+      <ConnectButton />
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!!</h1>
       <h1 className="my-4 text-4xl bold">Score: {score}</h1>
       <h2 className={

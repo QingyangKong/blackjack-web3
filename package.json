@@ -11,8 +11,11 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.777.0",
     "@aws-sdk/lib-dynamodb": "^3.778.0",
+    "@rainbow-me/rainbowkit": "^2.2.4",
     "@tailwindcss/postcss": "^4.0.17",
     "@tanstack/react-query": "5.45.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "jsonwebtoken": "^9.0.2",
     "next": "14.2.4",
     "postcss": "^8.5.3",
     "react": "^18.3.1",

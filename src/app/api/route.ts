@@ -2,6 +2,8 @@
 // get and put score with tables in database
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { verifyMessage } from "viem";
+import jwt from "jsonwebtoken";
 
 const client = new DynamoDBClient({ 
     region: "us-east-1", 
@@ -56,8 +58,6 @@ async function updateScoreForPlayer(player: string, score: number) {
     }
 }
 
-const defaultPlayer = "defaultPlayer"
-
 // Start the game and get 2 random cards for dealer and player
 // handle the hit and stand and decide who is the winner
 
@@ -96,7 +96,14 @@ function getRandomCard(deck: Card[], noOfCards: number): [Card[], Card[]] {
     return [randomCards, newDeck]
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+    const url = new URL(request.url)
+    const player = url.searchParams.get("player")
+    if(!player) {
+        return new Response(JSON.stringify({message: "Player is required"}), {
+            status: 400 
+    })}
+
     gameState.deck = [...initialDeck]
     gameState.dealerHand = []
     gameState.playerHand = []
@@ -109,8 +116,7 @@ export async function GET() {
     gameState.playerHand = playerHand
     gameState.deck = deckAfterPlayer
 
-    const response = await getItem(defaultPlayer)
-    console.log("response", response)
+    const response = await getItem(player)
     if(!response) {
         gameState.score = 0
     } else {
@@ -130,6 +136,45 @@ export async function GET() {
 // handle the hit and stand and decide who is the winner
 export async function POST(request: Request) {
     try {
+        // return if the action is not hit or stand
+        const body = await request.json()
+        const { action, player } = body
+
+        // verify if the signaure is correct
+        if(action === "auth") {
+            const { signature, message } = body
+            const isValid = await verifyMessage({
+                address: player,
+                signature,
+                message
+            })
+            if(isValid) {
+                const jwtToken = jwt.sign({player}, process.env.JWT_SECRET || "", {expiresIn: "1h"})
+                return new Response(JSON.stringify({"token": jwtToken}), {
+                    status: 200
+                })
+            } else {
+                return new Response(JSON.stringify({message: "Signaure is invalid"}), {
+                    status: 400
+                })
+            }
+        }
+
+        // verify that every request has a valid token
+        const header = request.headers.get("Bearer")
+        if(!header || !header.startsWith("Bearer ")) {
+            return new Response(JSON.stringify({message: "Unauthorized"}), {
+                status: 401
+            })
+        }
+        const jwtToken = header.split(" ")[1]
+        const decoded = jwt.verify(jwtToken, process.env.JWT_SECRET || "") as {player: string}
+        if(decoded.player.toLocaleLowerCase() !== player.toLocaleLowerCase()) {
+            return new Response(JSON.stringify({message: "Unauthorized"}), {
+                status: 401
+            })
+        }
+
         // return if the current game is finished
         if(gameState.message !== "") {
             return new Response(JSON.stringify({
@@ -142,13 +187,13 @@ export async function POST(request: Request) {
         } 
 
         // return if the action is not hit or stand
-        const { action } = await request.json()
         if(action !== "hit" && action !== "stand") {
             return new Response(JSON.stringify({message: "Invalid action"}), {
                 status: 400
             })
         }
         
+
         // hit: 21 - player wins black jack
         // hit: greater than 21 - player loses, bust
         // hit: less than 21 = continue, update the player hand
@@ -205,7 +250,7 @@ export async function POST(request: Request) {
             }
         }
 
-        await updateScoreForPlayer(defaultPlayer, gameState.score)        
+        await updateScoreForPlayer(player, gameState.score)        
 
         return new Response(JSON.stringify(
             {
