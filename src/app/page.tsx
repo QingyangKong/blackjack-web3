@@ -3,6 +3,8 @@ import { useEffect, useState } from "react"
 import { Card } from "./api/route"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useAccount, useSignMessage } from "wagmi"
+import { createWalletClient, createPublicClient, custom, parseAbi  } from "viem"
+import { avalancheFuji } from "viem/chains"
 
 export default function Page() { 
   
@@ -13,6 +15,25 @@ export default function Page() {
   const [signed, setSigned] = useState<boolean>(false)
   const { isConnected, address } = useAccount()
   const { signMessageAsync } = useSignMessage()
+  const [walletClient, setWalletClient] = useState<any>(null) // 动态初始化
+  const [publicClient, setPublicClient] = useState<any>(null) // 动态初始化
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.ethereum) {
+      const wallet = createWalletClient({
+        chain: avalancheFuji,
+        transport: custom(window.ethereum)
+      })
+      const publicC = createPublicClient({
+        chain: avalancheFuji,
+        transport: custom(window.ethereum)
+      })
+      setWalletClient(() => wallet)
+      setPublicClient(() => publicC)
+    } else {
+      console.error("MetaMask or window.ethereum is not available")
+    }
+  }, [])
 
     const initialGame = async () => {
       const response = await fetch(`/api?player=${address}`, {
@@ -93,6 +114,56 @@ export default function Page() {
     }
   }
 
+
+  async function handleSendTx() {
+    try {
+      const contractAddr = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+      const contractAbiRaw = process.env.NEXT_PUBLIC_CONTRACT_ABI || ""
+
+      let contractAbi;
+      
+      try {
+        contractAbi = parseAbi([contractAbiRaw])
+        console.log("Parsed ABI:", contractAbi)
+      } catch (error) {
+        console.error("Error parsing ABI:", error)
+        setMessage("Invalid ABI JSON format")
+        return
+      }
+      
+      if(!contractAddr || !contractAbi) {
+        console.error("Contract address or ABI is not defined")
+        return
+      }
+      const args = [address]
+
+      const { request } = await publicClient.simulateContract({
+        address: contractAddr as `0x${string}`,
+        abi: contractAbi,
+        functionName: 'sendRequest',
+        args: [
+          args,
+          address
+        ],
+        account: address
+      })
+
+      const txHash = await walletClient.writeContract({
+        address: contractAddr as `0x${string}`,
+        abi: contractAbi,
+        functionName: 'sendRequest',
+        args: [
+          args,
+          address
+        ],
+        account: address
+      })
+    } catch (error) {
+      console.error("Error sending transaction:", error)
+    }
+    
+  }
+
   if(!signed) {
     return (
       <div>
@@ -109,7 +180,10 @@ export default function Page() {
     <div className="flex flex-col items-center h-screen bg-gray-400">
       <ConnectButton />
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!!</h1>
-      <h1 className="my-4 text-4xl bold">Score: {score}</h1>
+      <div>
+        <h1 className="my-4 text-4xl bold">Score: {score}</h1>
+        <button onClick={handleSendTx} className="p-1 bg-amber-300 rounded-lg"> Get Token </button>
+      </div>
       <h2 className={
         `my-4 text-2xl bold
         ${message.includes("win") ? "bg-green-500" : "bg-yellow-500"}`
